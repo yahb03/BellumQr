@@ -3,7 +3,7 @@
         'name' => 'kwaltas/weapon-assignment-system',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '198e561b3b8580353df03f66e9af720e2f4433f5',
+        'reference' => 'a5eb8f8a5e0ddc23d3fbef993c1147a53d71786e',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'bacon/bacon-qr-code' => array(
-            'pretty_version' => '2.0.8',
-            'version' => '2.0.8.0',
-            'reference' => '8674e51bb65af933a5ffaf1c308a660387c35c22',
+            'pretty_version' => 'v3.0.1',
+            'version' => '3.0.1.0',
+            'reference' => 'f9cc1f52b5a463062251d666761178dbdb6b544f',
             'type' => 'library',
             'install_path' => __DIR__ . '/../bacon/bacon-qr-code',
             'aliases' => array(),
@@ -29,9 +29,9 @@
             'dev_requirement' => false,
         ),
         'endroid/qr-code' => array(
-            'pretty_version' => '4.8.5',
-            'version' => '4.8.5.0',
-            'reference' => '0db25b506a8411a5e1644ebaa67123a6eb7b6a77',
+            'pretty_version' => '5.1.0',
+            'version' => '5.1.0.0',
+            'reference' => '393fec6c4cbdc1bd65570ac9d245704428010122',
             'type' => 'library',
             'install_path' => __DIR__ . '/../endroid/qr-code',
             'aliases' => array(),
@@ -40,7 +40,7 @@
         'kwaltas/weapon-assignment-system' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '198e561b3b8580353df03f66e9af720e2f4433f5',
+            'reference' => 'a5eb8f8a5e0ddc23d3fbef993c1147a53d71786e',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

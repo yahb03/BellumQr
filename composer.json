@@ -3,7 +3,7 @@
     "description": "this a sytem for assigment weapons",
     "require": {
         "php": "^7.2 || ^8.0",
-        "endroid/qr-code": "^4.0"
+        "endroid/qr-code": "^5.0"
     },
     "autoload": {
         "psr-4": {

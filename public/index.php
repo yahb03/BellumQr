@@ -14,37 +14,46 @@ $route = trim($route, '/');
 $route = parse_url($route, PHP_URL_PATH);
 
 $routes = [
-    '' => 'src/Views/index.php',
-    'login' => 'src/Controllers/AuthController.php@login',
-    'logout' => 'src/Controllers/AuthController.php@logout',
-    'register_user' => 'src/Controllers/UserController.php@register',
-    'register_weapon' => 'src/Controllers/WeaponController.php@register',
-    'assign_weapon' => 'src/Controllers/AssignmentController.php@assign',
-    'return_weapon' => 'src/Controllers/ReturnController.php@return',
-    'search_weapon' => 'src/Controllers/WeaponController.php@search',
-    'search_user' => 'src/Controllers/UserController.php@search',
-    'admin' => 'src/Controllers/AdminController.php@index',
-    'admin/users' => 'src/Controllers/AdminController.php@viewUsers',
-    'admin/users/edit' => 'src/Controllers/UserController.php@edit',
-    'admin/users/update' => 'src/Controllers/UserController.php@update',
-    'admin/users/delete' => 'src/Controllers/UserController.php@delete',
-    'admin/weapons' => 'src/Controllers/AdminController.php@viewWeapons',
-    'admin/weapons/edit' => 'src/Controllers/WeaponController.php@edit',
-    'admin/weapons/update' => 'src/Controllers/WeaponController.php@update',
-    'admin/weapons/delete' => 'src/Controllers/WeaponController.php@delete',
-    'admin/assigned' => 'src/Controllers/AdminController.php@viewAssignedWeapons',
+    '' => 'Controllers/ViewController@index',
+    'login' => 'Controllers/AuthController@login',
+    'logout' => 'Controllers/AuthController@logout',
+    'register_user' => 'Controllers/UserController@register',
+    'register_weapon' => 'Controllers/WeaponController@register',
+    'assign_weapon' => 'Controllers/AssignmentController@assign',
+    'return_weapon' => 'Controllers/ReturnController@return',
+    'search_weapon' => 'Controllers/WeaponController@search',
+    'search_user' => 'Controllers/UserController@search',
+    'admin' => 'Controllers/AdminController@index',
+    'admin/users' => 'Controllers/AdminController@viewUsers',
+    'admin/users/search' => 'Controllers/AdminController@searchUsers',
+    'admin/users/edit' => 'Controllers/UserController@edit',
+    'admin/users/update' => 'Controllers/UserController@update',
+    'admin/users/delete' => 'Controllers/UserController@delete',
+    'admin/weapons' => 'Controllers/AdminController@viewWeapons',
+    'admin/weapons/search' => 'Controllers/AdminController@searchWeapons',
+    'admin/weapons/edit' => 'Controllers/WeaponController@edit',
+    'admin/weapons/update' => 'Controllers/WeaponController@update',
+    'admin/weapons/delete' => 'Controllers/WeaponController@delete',
+    'admin/assigned' => 'Controllers/AdminController@viewAssignedWeapons',
+    'success' => 'Controllers/ViewController@success',
     // Add other routes here
 ];
 
 if (array_key_exists($route, $routes)) {
     $target = $routes[$route];
-    if (strpos($target, '@') !== false) {
-        list($controller, $method) = explode('@', $target);
-        $controller_class = 'YourNamespace\\' . str_replace('/', '\\', $controller);
+    list($controller, $method) = explode('@', $target);
+    $controller_class = 'YourNamespace\\' . str_replace('/', '\\', $controller);
+    if (class_exists($controller_class)) {
         $controller_instance = new $controller_class();
-        $controller_instance->$method();
+        if (method_exists($controller_instance, $method)) {
+            $controller_instance->$method();
+        } else {
+            $error_controller = new YourNamespace\Controllers\ErrorController();
+            $error_controller->notFound();
+        }
     } else {
-        require_once __DIR__ . '/../' . $target;
+        $error_controller = new YourNamespace\Controllers\ErrorController();
+        $error_controller->notFound();
     }
 } else {
     $error_controller = new YourNamespace\Controllers\ErrorController();

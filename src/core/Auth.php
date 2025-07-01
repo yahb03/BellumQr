@@ -15,7 +15,7 @@ class Auth
     {
         self::startSession();
         if (!isset($_SESSION['cedula']) || !isset($_SESSION['role'])) {
-            header("Location: login.php");
+            header("Location: /login");
             exit();
         }
     }
@@ -57,7 +57,7 @@ class Auth
         self::startSession();
         session_unset();
         session_destroy();
-        header("Location: login.php");
+        header("Location: /login");
         exit();
     }
 }

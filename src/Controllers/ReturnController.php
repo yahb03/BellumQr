@@ -2,17 +2,17 @@
 
 namespace YourNamespace\Controllers;
 
-use YourNamespace\Core\DB;
+use YourNamespace\Models\Assignment;
+use YourNamespace\Models\Weapon;
 use YourNamespace\Core\Sanitizer;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 
 class ReturnController
 {
     public function return()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
             $serie = isset($_POST['serie']) ? Sanitizer::sanitizeString($_POST['serie']) : '';
 
             if (empty($serie)) {
@@ -21,36 +21,38 @@ class ReturnController
                 exit();
             } else {
                 try {
-                    $sql = "UPDATE arma SET Ubicacion_actual = 'Armerillo' WHERE Serie = ?";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bind_param("s", $serie);
+                    if (Weapon::updateLocation($serie, 'Armerillo')) {
+                        Assignment::delete($serie);
 
-                    if ($stmt->execute()) {
-                        $sql_delete = "DELETE FROM asignaciones WHERE serie_arma = ?";
-                        $stmt_delete = $conn->prepare($sql_delete);
-                        $stmt_delete->bind_param("s", $serie);
-                        $stmt_delete->execute();
+                        // Generate QR code
+                        $qr_data = "Devolucion:\nSerie: $serie";
+                        $qr_filename = 'return_' . $serie . '.png';
+                        $qr_path = __DIR__ . '/../../public/qrcodes/' . $qr_filename;
 
-                        header("Location: /success?message=Weapon+returned+successfully");
+                        if (!is_dir(__DIR__ . '/../../public/qrcodes/')) {
+                            mkdir(__DIR__ . '/../../public/qrcodes/', 0777, true);
+                        }
+
+                        $result = Builder::create()
+                            ->writer(new PngWriter())
+                            ->data($qr_data)
+                            ->build();
+
+                        $result->saveToFile($qr_path);
+
+                        header("Location: /success?message=Weapon+returned+successfully&qr=$qr_filename&type=return");
                         exit();
                     } else {
-                        throw new \Exception($stmt->error);
+                        throw new \Exception("Failed to update weapon location.");
                     }
                 } catch (\Exception $e) {
                     $error_message = $e->getMessage();
                     $error_controller = new ErrorController();
                     $error_controller->customError("Database Error", $error_message);
                     exit();
-                } finally {
-                    if (isset($stmt)) {
-                        $stmt->close();
-                    }
-                    if (isset($stmt_delete)) {
-                        $stmt_delete->close();
-                    }
-                    $conn->close();
                 }
             }
+
         } else {
             require_once __DIR__ . '/../Views/return_weapon.php';
         }

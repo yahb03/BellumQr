@@ -2,17 +2,16 @@
 
 namespace YourNamespace\Controllers;
 
-use YourNamespace\Core\DB;
+use YourNamespace\Models\User;
 use YourNamespace\Core\Sanitizer;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
 
 class UserController
 {
     public function register()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
             $cedula = isset($_POST['cedula']) ? Sanitizer::sanitizeString($_POST['cedula']) : '';
             $nombre = isset($_POST['nombre']) ? Sanitizer::sanitizeString($_POST['nombre']) : '';
             $apellido = isset($_POST['apellido']) ? Sanitizer::sanitizeString($_POST['apellido']) : '';
@@ -27,15 +26,27 @@ class UserController
             } else {
                 try {
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    $sql = "INSERT INTO usuarios (cedula, nombre, apellido, rango, password, role) VALUES (?, ?, ?, ?, ?, ?)";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bind_param("ssssss", $cedula, $nombre, $apellido, $rango, $hashed_password, $role);
+                    if (User::create($cedula, $nombre, $apellido, $rango, $hashed_password, $role)) {
+                        // Generate QR code
+                        $qr_data = "Cedula: $cedula\nNombre: $nombre $apellido\nGrado: $rango";
+                        $qr_filename = 'user_' . $cedula . '.png';
+                        $qr_path = __DIR__ . '/../../public/qrcodes/' . $qr_filename;
+                        
+                        if (!is_dir(__DIR__ . '/../../public/qrcodes/')) {
+                            mkdir(__DIR__ . '/../../public/qrcodes/', 0777, true);
+                        }
+                        
+                        $result = Builder::create()
+                            ->writer(new PngWriter())
+                            ->data($qr_data)
+                            ->build();
+                        
+                        $result->saveToFile($qr_path);
 
-                    if ($stmt->execute()) {
-                        header("Location: /success?message=User+registered+successfully");
+                        header("Location: /success?message=User+registered+successfully&qr=$qr_filename&type=user");
                         exit();
                     } else {
-                        throw new \Exception($stmt->error);
+                        throw new \Exception("Failed to create user.");
                     }
                 } catch (\Exception $e) {
                     $error_message = $e->getMessage();
@@ -48,13 +59,9 @@ class UserController
                     $error_controller = new ErrorController();
                     $error_controller->customError($error_type, $error_message);
                     exit();
-                } finally {
-                    if (isset($stmt)) {
-                        $stmt->close();
-                    }
-                    $conn->close();
                 }
             }
+
         } else {
             require_once __DIR__ . '/../Views/register_user.php';
         }
@@ -63,23 +70,15 @@ class UserController
     public function search()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
-            $cedula = isset($_POST['cedula']) ? $conn->real_escape_string(trim($_POST['cedula'])) : '';
+            $cedula = isset($_POST['cedula']) ? trim($_POST['cedula']) : '';
 
             if (!empty($cedula)) {
-                $sql = "SELECT * FROM usuarios WHERE cedula = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("s", $cedula);
-                $stmt->execute();
-                $result = $stmt->get_result();
+                $user = User::find($cedula);
 
-                if ($result->num_rows > 0) {
-                    $user = $result->fetch_assoc();
-                    echo "User found: " . $user['nombre'] . " " . $user['apellido'];
+                if ($user) {
+                    echo "<div class='search-result-item'>User found: " . htmlspecialchars($user['nombre']) . " " . htmlspecialchars($user['apellido']) . "</div>";
                 } else {
-                    echo "User not found.";
+                    echo "<div class='search-result-item'>User not found.</div>";
                 }
             }
         }
@@ -87,34 +86,21 @@ class UserController
 
     public function edit()
     {
-        $db = DB::getInstance();
-        $conn = $db->getConnection();
         $cedula = Sanitizer::sanitizeString($_GET['cedula']);
-        $stmt = $conn->prepare("SELECT * FROM usuarios WHERE cedula = ?");
-        $stmt->bind_param("s", $cedula);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
+        $user = User::find($cedula);
         require_once __DIR__ . '/../Views/admin/edit_user.php';
     }
 
     public function update()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
             $cedula = Sanitizer::sanitizeString($_POST['cedula']);
             $nombre = Sanitizer::sanitizeString($_POST['nombre']);
             $apellido = Sanitizer::sanitizeString($_POST['apellido']);
             $rango = Sanitizer::sanitizeString($_POST['rango']);
             $role = Sanitizer::sanitizeString($_POST['role']);
 
-            $sql = "UPDATE usuarios SET nombre = ?, apellido = ?, rango = ?, role = ? WHERE cedula = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssss", $nombre, $apellido, $rango, $role, $cedula);
-
-            if ($stmt->execute()) {
+            if (User::update($cedula, $nombre, $apellido, $rango, $role)) {
                 header("Location: /admin/users?message=User+updated+successfully");
                 exit();
             } else {
@@ -127,14 +113,8 @@ class UserController
 
     public function delete()
     {
-        $db = DB::getInstance();
-        $conn = $db->getConnection();
         $cedula = Sanitizer::sanitizeString($_GET['cedula']);
-        $sql = "DELETE FROM usuarios WHERE cedula = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $cedula);
-
-        if ($stmt->execute()) {
+        if (User::delete($cedula)) {
             header("Location: /admin/users?message=User+deleted+successfully");
             exit();
         } else {

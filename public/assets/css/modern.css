@@ -1,15 +1,77 @@
 /* General Body Styles */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #121212;
-    color: #EAEAEA;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
     margin: 0;
-    padding: 0;
+    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
 }
+
+.search-panel {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.search-box {
+    width: 45%;
+    padding: 20px;
+    background-color: #2C2C2C;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+.search-box h2 {
+    color: #AE8A50;
+    margin-top: 0;
+}
+
+.search-box form {
+    display: flex;
+    gap: 10px;
+}
+
+.search-box input[type="text"] {
+    flex-grow: 1;
+}
+
+.search-box button {
+    background-color: #AE8A50;
+    color: #121212;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#search-results {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #252525;
+}
+
+.search-result-item {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    color: #EAEAEA;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+.search-box button:hover {
+    background-color: #C9A46F;
+}
+
+
 
 /* Container Styles */
 .container {

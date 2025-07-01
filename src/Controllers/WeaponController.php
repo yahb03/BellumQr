@@ -2,9 +2,9 @@
 
 namespace YourNamespace\Controllers;
 
-use YourNamespace\Core\DB;
+use YourNamespace\Models\Weapon;
 use YourNamespace\Core\Sanitizer;
-use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 
 class WeaponController
@@ -12,9 +12,6 @@ class WeaponController
     public function register()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
             $tipo_arma = isset($_POST['tipo_arma']) ? Sanitizer::sanitizeString($_POST['tipo_arma']) : '';
             $modelo = isset($_POST['modelo']) ? Sanitizer::sanitizeString($_POST['modelo']) : '';
             $serie = isset($_POST['serie']) ? Sanitizer::sanitizeString($_POST['serie']) : '';
@@ -27,11 +24,7 @@ class WeaponController
                 exit();
             } else {
                 try {
-                    $sql = "INSERT INTO arma (Serie, Tipo_arma, Modelo, Ubicacion_actual, Estado_arma) VALUES (?, ?, ?, ?, ?)";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bind_param("sssss", $serie, $tipo_arma, $modelo, $ubicacion_actual, $estado_arma);
-
-                    if ($stmt->execute()) {
+                    if (Weapon::create($serie, $tipo_arma, $modelo, $ubicacion_actual, $estado_arma)) {
                         $qr_data = "Tipo: $tipo_arma\nModelo: $modelo\nSerie: $serie\nUbicacion: $ubicacion_actual\nEstado: $estado_arma";
                         $qr_filename = 'weapon_' . $serie . '.png';
                         $qr_path = __DIR__ . '/../../public/qrcodes/' . $qr_filename;
@@ -40,14 +33,17 @@ class WeaponController
                             mkdir(__DIR__ . '/../../public/qrcodes/', 0777, true);
                         }
 
-                        $qr_code = QrCode::create($qr_data);
-                        $writer = new PngWriter();
-                        $writer->write($qr_code)->saveToFile($qr_path);
+                        $result = Builder::create()
+                            ->writer(new PngWriter())
+                            ->data($qr_data)
+                            ->build();
+
+                        $result->saveToFile($qr_path);
 
                         header("Location: /success?message=Weapon+registered+successfully&qr=$qr_filename&type=weapon");
                         exit();
                     } else {
-                        throw new \Exception($stmt->error);
+                        throw new \Exception("Failed to create weapon.");
                     }
                 } catch (\Exception $e) {
                     $error_message = $e->getMessage();
@@ -60,13 +56,9 @@ class WeaponController
                     $error_controller = new ErrorController();
                     $error_controller->customError($error_type, $error_message);
                     exit();
-                } finally {
-                    if (isset($stmt)) {
-                        $stmt->close();
-                    }
-                    $conn->close();
                 }
             }
+
         } else {
             require_once __DIR__ . '/../Views/register_weapon.php';
         }
@@ -75,28 +67,16 @@ class WeaponController
     public function search()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
-            $serie = isset($_POST['serie']) ? $conn->real_escape_string(trim($_POST['serie'])) : '';
+            $serie = isset($_POST['serie']) ? trim($_POST['serie']) : '';
 
             if (!empty($serie)) {
-                $sql = "SELECT * FROM arma WHERE Serie = ?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("s", $serie);
-                $stmt->execute();
-                $result = $stmt->get_result();
+                $weapon = Weapon::find($serie);
 
-                if ($result->num_rows > 0) {
-                    $weapon = $result->fetch_assoc();
-                    echo "Weapon found: " . $weapon['Tipo_arma'] . " " . $weapon['Modelo'] . " (" . $weapon['Estado_arma'] . ")";
-                    if ($weapon['Ubicacion_actual'] == 'Asignada') {
-                        echo " - Assigned";
-                    } else {
-                        echo " - Available";
-                    }
+                if ($weapon) {
+                    $assigned_status = ($weapon['Ubicacion_actual'] == 'Asignada') ? 'Asignada' : 'Disponible';
+                    echo "<div class='search-result-item'>Weapon found: " . htmlspecialchars($weapon['Tipo_arma']) . " " . htmlspecialchars($weapon['Modelo']) . " (" . htmlspecialchars($weapon['Estado_arma']) . ") - " . htmlspecialchars($assigned_status) . "</div>";
                 } else {
-                    echo "Weapon not found.";
+                    echo "<div class='search-result-item'>Weapon not found.</div>";
                 }
             }
         }
@@ -104,34 +84,21 @@ class WeaponController
 
     public function edit()
     {
-        $db = DB::getInstance();
-        $conn = $db->getConnection();
         $serie = Sanitizer::sanitizeString($_GET['serie']);
-        $stmt = $conn->prepare("SELECT * FROM arma WHERE Serie = ?");
-        $stmt->bind_param("s", $serie);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $weapon = $result->fetch_assoc();
+        $weapon = Weapon::find($serie);
         require_once __DIR__ . '/../Views/admin/edit_weapon.php';
     }
 
     public function update()
     {
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            $db = DB::getInstance();
-            $conn = $db->getConnection();
-
             $serie = Sanitizer::sanitizeString($_POST['serie']);
             $tipo_arma = Sanitizer::sanitizeString($_POST['tipo_arma']);
             $modelo = Sanitizer::sanitizeString($_POST['modelo']);
             $ubicacion_actual = Sanitizer::sanitizeString($_POST['ubicacion_actual']);
             $estado_arma = Sanitizer::sanitizeString($_POST['estado_arma']);
 
-            $sql = "UPDATE arma SET Tipo_arma = ?, Modelo = ?, Ubicacion_actual = ?, Estado_arma = ? WHERE Serie = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssss", $tipo_arma, $modelo, $ubicacion_actual, $estado_arma, $serie);
-
-            if ($stmt->execute()) {
+            if (Weapon::update($serie, $tipo_arma, $modelo, $ubicacion_actual, $estado_arma)) {
                 header("Location: /admin/weapons?message=Weapon+updated+successfully");
                 exit();
             } else {
@@ -144,14 +111,8 @@ class WeaponController
 
     public function delete()
     {
-        $db = DB::getInstance();
-        $conn = $db->getConnection();
         $serie = Sanitizer::sanitizeString($_GET['serie']);
-        $sql = "DELETE FROM arma WHERE Serie = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $serie);
-
-        if ($stmt->execute()) {
+        if (Weapon::delete($serie)) {
             header("Location: /admin/weapons?message=Weapon+deleted+successfully");
             exit();
         } else {
