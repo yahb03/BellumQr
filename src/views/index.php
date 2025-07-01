@@ -1,33 +1,17 @@
 <?php
-require_once __DIR__ . '/../core/db.php';
-require_once __DIR__ . '/../core/auth_check.php'; // Add this line
-
-// Check if user has admin or super_user role
-check_role(['admin', 'super_user']);
+$title = 'Bellum Tech System';
+require_once __DIR__ . '/partials/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bellum Tech System</title>
-    <link rel="stylesheet" href="../assets/css/styles.css">
-</head>
-<body>
-    <div class="container">
-        <img src="../assets/images/logo.png" alt="Bellum Tech System Logo" class="logo">
-        <h1>Bellum Tech System</h1>
-        <div class="button-grid">
-            <a href="../views/register_user.php" class="button">Registrar Usuario</a>
-            <a href="register_weapon.php" class="button">Registrar Arma</a>
-            <a href="assign_weapon.php" class="button">Asignar Arma</a>
-            <a href="return_weapon.php" class="button">Devolver Arma</a>
-            <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'super_user'): ?>
-                <a href="../admin/panel_admin.php" class="button">Administración</a>
-            <?php endif; ?>
-            <a href="logout.php" class="button">Salir</a>
-        </div>
-    </div>
-</body>
-</html>
+<div class="button-grid">
+    <a href="/register_user" class="button">Registrar Usuario</a>
+    <a href="/register_weapon" class="button">Registrar Arma</a>
+    <a href="/assign_weapon" class="button">Asignar Arma</a>
+    <a href="/return_weapon" class="button">Devolver Arma</a>
+    <?php if (isset($_SESSION['role']) && ($_SESSION['role'] == 'super_user' || $_SESSION['role'] == 'admin')): ?>
+        <a href="/admin" class="button">Administración</a>
+    <?php endif; ?>
+    <a href="/logout" class="button">Salir</a>
+</div>
+
+<?php require_once __DIR__ . '/partials/footer.php'; ?>

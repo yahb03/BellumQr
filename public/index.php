@@ -1,31 +1,52 @@
 <?php
-require_once 'auth_check.php';
-// Check if user has admin or super_user role
-check_role(['admin', 'super_user']);
-?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bellum Tech System</title>
-    <link rel="stylesheet" href="src/styles.css">
-</head>
-<body>
-    <div class="container">
-        <img src="src/logo.png" alt="Bellum Tech System Logo" class="logo">
-        <h1>Bellum Tech System</h1>
-        <div class="button-grid">
-    <a href="register_user.php" class="button">Registrar Usuario</a>
-    <a href="register_weapon.php" class="button">Registrar Arma</a>
-    <a href="assign_weapon.php" class="button">Asignar Arma</a>
-    <a href="return_weapon.php" class="button">Devolver Arma</a>
-    <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'super_user'): ?>
-        <a href="admin/panel_admin.php" class="button">Administración</a>
-    <?php endif; ?>
-    <a href="logout.php" class="button">Salir</a>
-    </div>
-    </div>
-</body>
-</html>
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use YourNamespace\Core\Auth;
+
+Auth::startSession();
+
+$request_uri = $_SERVER['REQUEST_URI'];
+$base_path = '/';
+
+$route = str_replace($base_path, '', $request_uri);
+$route = trim($route, '/');
+$route = parse_url($route, PHP_URL_PATH);
+
+$routes = [
+    '' => 'src/Views/index.php',
+    'login' => 'src/Controllers/AuthController.php@login',
+    'logout' => 'src/Controllers/AuthController.php@logout',
+    'register_user' => 'src/Controllers/UserController.php@register',
+    'register_weapon' => 'src/Controllers/WeaponController.php@register',
+    'assign_weapon' => 'src/Controllers/AssignmentController.php@assign',
+    'return_weapon' => 'src/Controllers/ReturnController.php@return',
+    'search_weapon' => 'src/Controllers/WeaponController.php@search',
+    'search_user' => 'src/Controllers/UserController.php@search',
+    'admin' => 'src/Controllers/AdminController.php@index',
+    'admin/users' => 'src/Controllers/AdminController.php@viewUsers',
+    'admin/users/edit' => 'src/Controllers/UserController.php@edit',
+    'admin/users/update' => 'src/Controllers/UserController.php@update',
+    'admin/users/delete' => 'src/Controllers/UserController.php@delete',
+    'admin/weapons' => 'src/Controllers/AdminController.php@viewWeapons',
+    'admin/weapons/edit' => 'src/Controllers/WeaponController.php@edit',
+    'admin/weapons/update' => 'src/Controllers/WeaponController.php@update',
+    'admin/weapons/delete' => 'src/Controllers/WeaponController.php@delete',
+    'admin/assigned' => 'src/Controllers/AdminController.php@viewAssignedWeapons',
+    // Add other routes here
+];
+
+if (array_key_exists($route, $routes)) {
+    $target = $routes[$route];
+    if (strpos($target, '@') !== false) {
+        list($controller, $method) = explode('@', $target);
+        $controller_class = 'YourNamespace\\' . str_replace('/', '\\', $controller);
+        $controller_instance = new $controller_class();
+        $controller_instance->$method();
+    } else {
+        require_once __DIR__ . '/../' . $target;
+    }
+} else {
+    $error_controller = new YourNamespace\Controllers\ErrorController();
+    $error_controller->notFound();
+}
